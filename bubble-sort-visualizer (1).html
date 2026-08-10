@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bubble Sort Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     DESIGN TOKENS
+     ============================================================ */
+  :root{
+    /* Palette — deep indigo/night base with a violet↔cyan signature gradient */
+    --bg-0:#0a0e1a;
+    --bg-1:#0f1425;
+    --glass:rgba(255,255,255,0.055);
+    --glass-border:rgba(255,255,255,0.10);
+    --glass-strong:rgba(255,255,255,0.09);
+    --text-hi:#eef1fb;
+    --text-mid:#a7aec4;
+    --text-low:#6b7290;
+
+    --accent-a:#7c6cff;   /* violet  */
+    --accent-b:#33d6c2;   /* teal    */
+    --accent-grad:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+
+    /* functional bar states — required color coding */
+    --bar-normal:#4d7cff;
+    --bar-normal-glow:rgba(77,124,255,0.45);
+    --bar-compare:#ffc93c;
+    --bar-compare-glow:rgba(255,201,60,0.55);
+    --bar-swap:#ff5c72;
+    --bar-swap-glow:rgba(255,92,114,0.55);
+    --bar-sorted:#33d69a;
+    --bar-sorted-glow:rgba(51,214,154,0.5);
+
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:9px;
+    --shadow-soft:0 20px 60px -20px rgba(0,0,0,0.6);
+    --font-display:'Sora',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+
+  body.light{
+    --bg-0:#eef1fb;
+    --bg-1:#e4e8f7;
+    --glass:rgba(255,255,255,0.55);
+    --glass-border:rgba(20,25,50,0.08);
+    --glass-strong:rgba(255,255,255,0.7);
+    --text-hi:#151a30;
+    --text-mid:#4c5270;
+    --text-low:#7d8299;
+    --shadow-soft:0 20px 60px -25px rgba(40,50,90,0.35);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    min-height:100vh;
+    font-family:var(--font-body);
+    color:var(--text-hi);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(124,108,255,0.16), transparent 55%),
+      radial-gradient(circle at 85% 15%, rgba(51,214,194,0.12), transparent 50%),
+      var(--bg-0);
+    background-attachment:fixed;
+    transition:background 0.4s ease, color 0.4s ease;
+    padding:28px 20px 60px;
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  .app{
+    max-width:1360px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:44px;height:44px;border-radius:12px;
+    background:var(--accent-grad);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 24px -6px rgba(124,108,255,0.55);
+    flex-shrink:0;
+  }
+  .brand-mark svg{width:24px;height:24px;}
+  .brand h1{
+    font-family:var(--font-display);
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .brand p{
+    font-size:12.5px;
+    color:var(--text-mid);
+    margin-top:2px;
+  }
+
+  .mode-toggle{
+    display:flex; align-items:center; gap:10px;
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    padding:8px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    backdrop-filter:blur(14px);
+    font-size:13px;
+    color:var(--text-mid);
+    transition:0.25s;
+  }
+  .mode-toggle:hover{ border-color:var(--accent-a); color:var(--text-hi); }
+
+  .layout{
+    display:grid;
+    grid-template-columns:1fr 340px;
+    gap:22px;
+    align-items:start;
+  }
+
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  /* ============================================================
+     GLASS CARD
+     ============================================================ */
+  .glass{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-lg);
+    backdrop-filter:blur(22px) saturate(140%);
+    -webkit-backdrop-filter:blur(22px) saturate(140%);
+    box-shadow:var(--shadow-soft);
+    transition:background 0.4s ease, border-color 0.4s ease;
+  }
+
+  .main-col{ display:flex; flex-direction:column; gap:22px; min-width:0; }
+  .side-col{ display:flex; flex-direction:column; gap:22px; }
+
+  /* ============================================================
+     VISUALIZATION PANEL
+     ============================================================ */
+  .viz-panel{ padding:26px 26px 22px; }
+
+  .viz-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:14px; flex-wrap:wrap; margin-bottom:18px;
+  }
+  .viz-top h2{
+    font-family:var(--font-display);
+    font-size:16px; font-weight:600; color:var(--text-hi);
+  }
+  .step-msg{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--accent-b);
+    min-height:18px;
+    transition:opacity 0.2s;
+  }
+
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; }
+  .legend span{
+    display:flex; align-items:center; gap:6px;
+    font-size:11.5px; color:var(--text-mid);
+  }
+  .legend i{
+    width:10px;height:10px;border-radius:3px; display:inline-block;
+  }
+  .dot-normal{background:var(--bar-normal);}
+  .dot-compare{background:var(--bar-compare);}
+  .dot-swap{background:var(--bar-swap);}
+  .dot-sorted{background:var(--bar-sorted);}
+
+  .bars-stage{
+    position:relative;
+    height:340px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:4px;
+    padding:10px 6px 0;
+    border-radius:var(--radius-md);
+    overflow:hidden;
+  }
+  @media (max-width:600px){ .bars-stage{ height:260px; } }
+
+  .bar{
+    flex:1 1 0;
+    max-width:46px;
+    min-width:4px;
+    border-radius:6px 6px 3px 3px;
+    background:var(--bar-normal);
+    box-shadow:0 0 14px -2px var(--bar-normal-glow);
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    transition:height 0.28s cubic-bezier(.4,0,.2,1),
+               transform 0.28s cubic-bezier(.4,0,.2,1),
+               background-color 0.22s ease,
+               box-shadow 0.22s ease;
+  }
+  .bar .val{
+    position:absolute;
+    top:-20px;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-mid);
+    white-space:nowrap;
+  }
+  .bar.compare{ background:var(--bar-compare); box-shadow:0 0 18px -2px var(--bar-compare-glow); transform:translateY(-6px); }
+  .bar.compare .val{ color:var(--bar-compare); }
+  .bar.swap{ background:var(--bar-swap); box-shadow:0 0 20px -2px var(--bar-swap-glow); transform:translateY(-10px) scale(1.03); }
+  .bar.swap .val{ color:var(--bar-swap); }
+  .bar.sorted{ background:var(--bar-sorted); box-shadow:0 0 16px -2px var(--bar-sorted-glow); }
+  .bar.sorted .val{ color:var(--bar-sorted); }
+
+  /* progress */
+  .progress-wrap{ margin-top:22px; }
+  .progress-labels{
+    display:flex; justify-content:space-between;
+    font-size:11.5px; color:var(--text-mid);
+    font-family:var(--font-mono);
+    margin-bottom:7px;
+  }
+  .progress-track{
+    height:8px; border-radius:999px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+    position:relative;
+  }
+  body.light .progress-track{ background:rgba(20,25,50,0.08); }
+  .progress-fill{
+    height:100%; width:0%;
+    background:var(--accent-grad);
+    border-radius:999px;
+    transition:width 0.25s ease;
+    box-shadow:0 0 12px rgba(124,108,255,0.6);
+  }
+
+  .celebrate{
+    margin-top:16px;
+    text-align:center;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px;
+    color:var(--bar-sorted);
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 0.4s ease, transform 0.4s ease;
+  }
+  .celebrate.show{ opacity:1; transform:translateY(0); animation:pop 0.6s ease; }
+  @keyframes pop{
+    0%{ transform:scale(0.9); }
+    50%{ transform:scale(1.04); }
+    100%{ transform:scale(1); }
+  }
+
+  /* ============================================================
+     CONTROLS PANEL
+     ============================================================ */
+  .controls-panel{ padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .panel-title{
+    font-family:var(--font-display);
+    font-size:13px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-mid);
+    margin-bottom:2px;
+  }
+
+  .btn-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn{
+    border:none; cursor:pointer;
+    font-family:var(--font-body);
+    font-weight:600; font-size:13px;
+    padding:11px 14px;
+    border-radius:var(--radius-sm);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    transition:transform 0.15s ease, filter 0.2s ease, opacity 0.2s ease;
+    box-shadow:0 8px 20px -8px rgba(0,0,0,0.5);
+  }
+  .btn:hover:not(:disabled){ transform:translateY(-2px); filter:brightness(1.08); }
+  .btn:active:not(:disabled){ transform:translateY(0); }
+  .btn:disabled{ opacity:0.35; cursor:not-allowed; filter:grayscale(0.4); }
+
+  .btn.full{ grid-column:1 / -1; }
+  .btn-generate{ background:linear-gradient(135deg,#7c6cff,#5946e0); }
+  .btn-start{ background:linear-gradient(135deg,#33d69a,#1fae7d); }
+  .btn-pause{ background:linear-gradient(135deg,#ffc93c,#e0a419); color:#241a00; }
+  .btn-resume{ background:linear-gradient(135deg,#4d7cff,#2f5be0); }
+  .btn-reset{ background:linear-gradient(135deg,#ff5c72,#e33a52); }
+
+  .field{ display:flex; flex-direction:column; gap:8px; }
+  .field-label{
+    display:flex; justify-content:space-between;
+    font-size:12.5px; color:var(--text-mid);
+  }
+  .field-label b{ color:var(--text-hi); font-family:var(--font-mono); font-weight:500;}
+
+  input[type="range"]{
+    -webkit-appearance:none;
+    width:100%; height:5px; border-radius:999px;
+    background:rgba(255,255,255,0.12);
+    outline:none;
+  }
+  body.light input[type="range"]{ background:rgba(20,25,50,0.12); }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px;height:16px;border-radius:50%;
+    background:var(--accent-grad);
+    cursor:pointer;
+    box-shadow:0 0 0 4px rgba(124,108,255,0.18);
+    transition:box-shadow 0.2s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover{ box-shadow:0 0 0 6px rgba(124,108,255,0.25); }
+  input[type="range"]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%; border:none;
+    background:var(--accent-grad); cursor:pointer;
+  }
+
+  hr.div{ border:none; border-top:1px solid var(--glass-border); margin:2px 0; }
+
+  .text-input{
+    width:100%;
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--text-hi);
+    background:var(--glass-strong);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    outline:none;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .text-input::placeholder{ color:var(--text-low); }
+  .text-input:focus{
+    border-color:var(--accent-a);
+    box-shadow:0 0 0 3px rgba(124,108,255,0.18);
+  }
+  .text-input.invalid{
+    border-color:var(--bar-swap);
+    box-shadow:0 0 0 3px rgba(255,92,114,0.16);
+  }
+  .input-hint{
+    font-size:11px;
+    color:var(--text-low);
+    line-height:1.4;
+  }
+  .input-error{
+    font-size:11.5px;
+    color:var(--bar-swap);
+    min-height:14px;
+    font-family:var(--font-mono);
+  }
+
+  /* ============================================================
+     STATS PANEL
+     ============================================================ */
+  .stats-panel{ padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-box{
+    background:var(--glass-strong);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-sm);
+    padding:12px 12px;
+  }
+  .stat-box .label{ font-size:11px; color:var(--text-mid); margin-bottom:4px;}
+  .stat-box .value{
+    font-family:var(--font-mono); font-size:18px; font-weight:700;
+    color:var(--text-hi);
+  }
+  .stat-box .value.accent{ color:var(--accent-b); }
+
+  .complexity-list{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .complexity-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; color:var(--text-mid);
+    padding:8px 12px;
+    background:var(--glass-strong);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-sm);
+  }
+  .complexity-row code{
+    font-family:var(--font-mono);
+    color:var(--accent-b);
+    font-size:12.5px;
+    font-weight:700;
+  }
+
+  /* ============================================================
+     EXPLANATION PANEL
+     ============================================================ */
+  .explain-panel{ padding:22px; }
+  .explain-panel p{
+    font-size:13.5px; line-height:1.65; color:var(--text-mid);
+  }
+  .explain-panel p + p{ margin-top:10px; }
+  .explain-panel .pass-info{
+    margin-top:16px;
+    display:flex; flex-direction:column; gap:8px;
+    font-family:var(--font-mono); font-size:12.5px;
+    color:var(--text-mid);
+  }
+  .explain-panel .pass-info b{ color:var(--text-hi); }
+
+  footer{
+    text-align:center; font-size:11.5px; color:var(--text-low);
+    margin-top:6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ HEADER ============ -->
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10M10 20V4M16 20V14M22 20V8" stroke="white" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <h1>Bubble Sort Visualizer</h1>
+        <p>Watch adjacent elements compare, swap, and settle into order</p>
+      </div>
+    </div>
+    <div class="mode-toggle" id="modeToggle">
+      <span id="modeIcon">🌙</span>
+      <span id="modeLabel">Dark mode</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ============ MAIN COLUMN ============ -->
+    <div class="main-col">
+
+      <section class="glass viz-panel">
+        <div class="viz-top">
+          <div>
+            <h2>Live Visualization</h2>
+            <div class="step-msg" id="stepMsg">Press "Start Sorting" to begin</div>
+          </div>
+          <div class="legend">
+            <span><i class="dot-normal"></i>Normal</span>
+            <span><i class="dot-compare"></i>Comparing</span>
+            <span><i class="dot-swap"></i>Swapping</span>
+            <span><i class="dot-sorted"></i>Sorted</span>
+          </div>
+        </div>
+
+        <div class="bars-stage" id="barsStage"></div>
+
+        <div class="progress-wrap">
+          <div class="progress-labels">
+            <span>Progress</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+
+        <div class="celebrate" id="celebrate">🎉 Sorting Completed Successfully! 🎉</div>
+      </section>
+
+      <section class="glass explain-panel">
+        <div class="panel-title">How Bubble Sort Works</div>
+        <p>Bubble sort repeatedly steps through the array, comparing each pair of neighboring bars. If the left bar is taller than the right one, they swap places — just like a bubble drifting to the surface.</p>
+        <p>Every full pass pushes the largest remaining value to its correct spot at the end of the array, which is why it turns green. The algorithm keeps making passes until an entire pass happens with no swaps, meaning the array is fully sorted.</p>
+        <div class="pass-info">
+          <div><b>Current Pass:</b> <span id="passNum">0</span></div>
+          <div><b>Current Comparison:</b> <span id="currentComparison">—</span></div>
+        </div>
+      </section>
+
+      <footer>Built with plain HTML, CSS &amp; JavaScript · No frameworks, no libraries</footer>
+    </div>
+
+    <!-- ============ SIDE COLUMN ============ -->
+    <div class="side-col">
+
+      <section class="glass controls-panel">
+        <div class="panel-title">Controls</div>
+
+        <div class="btn-grid">
+          <button class="btn btn-generate full" id="btnGenerate">🎲 Generate New Array</button>
+          <button class="btn btn-start full" id="btnStart">▶ Start Sorting</button>
+          <button class="btn btn-pause" id="btnPause" disabled>⏸ Pause</button>
+          <button class="btn btn-resume" id="btnResume" disabled>⏵ Resume</button>
+          <button class="btn btn-reset full" id="btnReset">⟲ Reset</button>
+        </div>
+
+        <hr class="div">
+
+        <div class="field">
+          <div class="field-label"><span>Speed</span><b id="speedLabel">Medium</b></div>
+          <input type="range" id="speedSlider" min="1" max="10" value="6">
+        </div>
+
+        <div class="field">
+          <div class="field-label"><span>Array Size</span><b id="sizeLabel">30</b></div>
+          <input type="range" id="sizeSlider" min="20" max="50" value="30">
+        </div>
+
+        <hr class="div">
+
+        <div class="field">
+          <div class="field-label"><span>Custom Array</span></div>
+          <input type="text" id="customArrayInput" class="text-input"
+                 placeholder="e.g. 42, 17, 8, 23, 4, 16">
+          <div class="input-hint">Comma or space separated whole numbers, 2–50 values (1–999 each)</div>
+          <div class="input-error" id="customArrayError"></div>
+          <button class="btn btn-generate full" id="btnUseCustom" style="margin-top:2px;">✎ Use This Array</button>
+        </div>
+      </section>
+
+      <section class="glass stats-panel">
+        <div class="panel-title">Live Statistics</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="label">Comparisons</div><div class="value" id="statComparisons">0</div></div>
+          <div class="stat-box"><div class="label">Swaps</div><div class="value" id="statSwaps">0</div></div>
+          <div class="stat-box"><div class="label">Time Elapsed</div><div class="value accent" id="statTime">0 ms</div></div>
+          <div class="stat-box"><div class="label">Pass</div><div class="value accent" id="statPass">0</div></div>
+        </div>
+
+        <div class="panel-title" style="margin-top:6px;">Complexity</div>
+        <div class="complexity-list">
+          <div class="complexity-row"><span>Time Complexity</span><code>O(n²)</code></div>
+          <div class="complexity-row"><span>Space Complexity</span><code>O(1)</code></div>
+          <div class="complexity-row"><span>Best Case</span><code>O(n)</code></div>
+          <div class="complexity-row"><span>Average Case</span><code>O(n²)</code></div>
+          <div class="complexity-row"><span>Worst Case</span><code>O(n²)</code></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   BUBBLE SORT VISUALIZER — core application logic
+   Organized into clearly separated, well-commented modules:
+   1. State
+   2. DOM references
+   3. Array generation & rendering
+   4. Stats / UI helpers
+   5. Sorting algorithm (async, pausable, cancellable)
+   6. Event wiring
+   ================================================================ */
+
+/* ---------- 1. STATE ---------- */
+const state = {
+  array: [],
+  isSorting: false,
+  isPaused: false,
+  isCancelled: false,
+  comparisons: 0,
+  swaps: 0,
+  passCount: 0,
+  startTime: 0,
+  timerId: null,
+  speed: 6,        // 1 (slow) -> 10 (fast)
+  arraySize: 30
+};
+
+/* ---------- 2. DOM REFERENCES ---------- */
+const el = {
+  barsStage: document.getElementById('barsStage'),
+  stepMsg: document.getElementById('stepMsg'),
+  progressFill: document.getElementById('progressFill'),
+  progressPct: document.getElementById('progressPct'),
+  celebrate: document.getElementById('celebrate'),
+
+  btnGenerate: document.getElementById('btnGenerate'),
+  btnStart: document.getElementById('btnStart'),
+  btnPause: document.getElementById('btnPause'),
+  btnResume: document.getElementById('btnResume'),
+  btnReset: document.getElementById('btnReset'),
+
+  speedSlider: document.getElementById('speedSlider'),
+  speedLabel: document.getElementById('speedLabel'),
+  sizeSlider: document.getElementById('sizeSlider'),
+  sizeLabel: document.getElementById('sizeLabel'),
+
+  customArrayInput: document.getElementById('customArrayInput'),
+  customArrayError: document.getElementById('customArrayError'),
+  btnUseCustom: document.getElementById('btnUseCustom'),
+
+  statComparisons: document.getElementById('statComparisons'),
+  statSwaps: document.getElementById('statSwaps'),
+  statTime: document.getElementById('statTime'),
+  statPass: document.getElementById('statPass'),
+
+  passNum: document.getElementById('passNum'),
+  currentComparison: document.getElementById('currentComparison'),
+
+  modeToggle: document.getElementById('modeToggle'),
+  modeIcon: document.getElementById('modeIcon'),
+  modeLabel: document.getElementById('modeLabel'),
+};
+
+/* ---------- 3. ARRAY GENERATION & RENDERING ---------- */
+
+// Create a new random array and render it
+function generateArray() {
+  const size = state.arraySize;
+  state.array = Array.from({ length: size }, () => Math.floor(Math.random() * 95) + 5);
+  resetStats();
+  renderBars();
+  setStepMessage('New array generated. Press "Start Sorting" to begin.');
+  hideCelebration();
+}
+
+// Build the bar elements from scratch (used on generate/reset/resize)
+function renderBars() {
+  el.barsStage.innerHTML = '';
+  const maxVal = Math.max(...state.array, 1);
+  const stageHeight = el.barsStage.clientHeight || 320;
+
+  state.array.forEach((value, index) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.id = `bar-${index}`;
+    const heightPct = (value / maxVal) * (stageHeight - 40);
+    bar.style.height = `${heightPct}px`;
+
+    const label = document.createElement('span');
+    label.className = 'val';
+    label.textContent = value;
+    bar.appendChild(label);
+
+    el.barsStage.appendChild(bar);
+  });
+}
+
+// Update only the height/value of a single bar (used mid-sort, keeps animation smooth)
+function updateBarVisual(index) {
+  const bar = document.getElementById(`bar-${index}`);
+  if (!bar) return;
+  const maxVal = Math.max(...state.array, 1);
+  const stageHeight = el.barsStage.clientHeight || 320;
+  const heightPct = (state.array[index] / maxVal) * (stageHeight - 40);
+  bar.style.height = `${heightPct}px`;
+  bar.querySelector('.val').textContent = state.array[index];
+}
+
+// Apply a state class ('compare' | 'swap' | 'sorted' | '') to a bar by index
+function setBarState(index, cls) {
+  const bar = document.getElementById(`bar-${index}`);
+  if (!bar) return;
+  bar.classList.remove('compare', 'swap', 'sorted');
+  if (cls) bar.classList.add(cls);
+}
+
+function clearTransientStates(indices) {
+  indices.forEach(i => setBarState(i, ''));
+}
+
+// Parse a raw string like "5, 3, 8 1,9" into a validated array of whole numbers.
+// Returns { ok: true, values } on success, or { ok: false, message } on failure.
+function parseCustomArray(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { ok: false, message: 'Please enter some numbers first.' };
+  }
+
+  // Split on commas and/or whitespace
+  const parts = trimmed.split(/[\s,]+/).filter(Boolean);
+
+  if (parts.length < 2) {
+    return { ok: false, message: 'Enter at least 2 numbers.' };
+  }
+  if (parts.length > 50) {
+    return { ok: false, message: 'Maximum of 50 numbers allowed.' };
+  }
+
+  const values = [];
+  for (const part of parts) {
+    if (!/^-?\d+$/.test(part)) {
+      return { ok: false, message: `"${part}" is not a whole number.` };
+    }
+    const num = parseInt(part, 10);
+    if (num < 1 || num > 999) {
+      return { ok: false, message: `${num} is out of range (1–999).` };
+    }
+    values.push(num);
+  }
+
+  return { ok: true, values };
+}
+
+// Apply a validated custom array as the working data set
+function useCustomArray() {
+  if (state.isSorting) return;
+
+  const result = parseCustomArray(el.customArrayInput.value);
+
+  if (!result.ok) {
+    el.customArrayError.textContent = result.message;
+    el.customArrayInput.classList.add('invalid');
+    return;
+  }
+
+  el.customArrayError.textContent = '';
+  el.customArrayInput.classList.remove('invalid');
+
+  state.array = result.values;
+  state.arraySize = result.values.length;
+
+  // keep the size slider in sync when the value is within its range
+  if (state.arraySize >= 20 && state.arraySize <= 50) {
+    el.sizeSlider.value = state.arraySize;
+  }
+  el.sizeLabel.textContent = state.arraySize;
+
+  resetStats();
+  renderBars();
+  hideCelebration();
+  setStepMessage(`Custom array loaded (${state.arraySize} values). Press "Start Sorting" to begin.`);
+  el.btnStart.disabled = false;
+}
+
+/* ---------- 4. STATS / UI HELPERS ---------- */
+
+function resetStats() {
+  state.comparisons = 0;
+  state.swaps = 0;
+  state.passCount = 0;
+  stopTimer();
+  el.statComparisons.textContent = '0';
+  el.statSwaps.textContent = '0';
+  el.statTime.textContent = '0 ms';
+  el.statPass.textContent = '0';
+  el.passNum.textContent = '0';
+  el.currentComparison.textContent = '—';
+  updateProgress(0);
+}
+
+function setStepMessage(msg) {
+  el.stepMsg.textContent = msg;
+}
+
+function updateProgress(pct) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  el.progressFill.style.width = `${clamped}%`;
+  el.progressPct.textContent = `${Math.round(clamped)}%`;
+}
+
+function startTimer() {
+  state.startTime = performance.now();
+  state.timerId = setInterval(() => {
+    const elapsed = Math.round(performance.now() - state.startTime);
+    el.statTime.textContent = `${elapsed} ms`;
+  }, 50);
+}
+
+function stopTimer() {
+  if (state.timerId) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
+function showCelebration() {
+  el.celebrate.classList.add('show');
+}
+function hideCelebration() {
+  el.celebrate.classList.remove('show');
+}
+
+// Maps the 1–10 speed slider to an actual millisecond delay (higher slider = faster = shorter delay)
+function getDelay() {
+  const minDelay = 15;   // fastest
+  const maxDelay = 500;  // slowest
+  const t = (10 - state.speed) / 9; // 0 (fast) -> 1 (slow)
+  return Math.round(minDelay + t * (maxDelay - minDelay));
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Pauses execution (without blocking the UI) while state.isPaused is true.
+// Also throws if the sort has been cancelled, so the sorting loop can bail out cleanly.
+async function waitWhilePaused() {
+  while (state.isPaused && !state.isCancelled) {
+    await sleep(80);
+  }
+  if (state.isCancelled) throw new Error('SORT_CANCELLED');
+}
+
+/* ---------- 5. BUTTON / CONTROL STATE ---------- */
+
+function setControlsForSorting(isSorting) {
+  el.btnGenerate.disabled = isSorting;
+  el.sizeSlider.disabled = isSorting;
+  el.btnStart.disabled = isSorting;
+  el.btnPause.disabled = !isSorting || state.isPaused;
+  el.btnResume.disabled = !isSorting || !state.isPaused;
+  el.btnReset.disabled = false; // reset always allowed
+  el.btnUseCustom.disabled = isSorting;
+  el.customArrayInput.disabled = isSorting;
+}
+
+/* ---------- 6. BUBBLE SORT ALGORITHM (async, animated) ---------- */
+
+async function bubbleSort() {
+  const arr = state.array;
+  const n = arr.length;
+  state.isSorting = true;
+  state.isCancelled = false;
+  state.isPaused = false;
+  setControlsForSorting(true);
+  startTimer();
+
+  let swappedInPass = true;
+  let lastUnsortedIndex = n - 1;
+
+  try {
+    for (let i = 0; i < n - 1 && swappedInPass; i++) {
+      swappedInPass = false;
+      state.passCount = i + 1;
+      el.statPass.textContent = state.passCount;
+      el.passNum.textContent = state.passCount;
+
+      for (let j = 0; j < lastUnsortedIndex; j++) {
+        await waitWhilePaused();
+
+        // --- comparing step ---
+        setBarState(j, 'compare');
+        setBarState(j + 1, 'compare');
+        state.comparisons++;
+        el.statComparisons.textContent = state.comparisons;
+
+        const a = arr[j], b = arr[j + 1];
+        setStepMessage(`Comparing ${a} and ${b}`);
+        el.currentComparison.textContent = `index ${j} (${a})  vs  index ${j + 1} (${b})`;
+
+        const totalSteps = (n * (n - 1)) / 2;
+        const stepsDone = getStepsCompleted(i, j, n);
+        updateProgress((stepsDone / totalSteps) * 100);
+
+        await sleep(getDelay());
+        await waitWhilePaused();
+
+        if (a > b) {
+          // --- swapping step ---
+          setBarState(j, 'swap');
+          setBarState(j + 1, 'swap');
+          setStepMessage(`Swapping ${a} and ${b}`);
+
+          [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+          updateBarVisual(j);
+          updateBarVisual(j + 1);
+
+          state.swaps++;
+          el.statSwaps.textContent = state.swaps;
+          swappedInPass = true;
+
+          await sleep(getDelay());
+        } else {
+          setStepMessage('No swap required');
+          await sleep(Math.max(getDelay() / 2, 10));
+        }
+
+        await waitWhilePaused();
+        clearTransientStates([j, j + 1]);
+      }
+
+      // mark the last element of this pass as sorted
+      setBarState(lastUnsortedIndex, 'sorted');
+      setStepMessage(`Pass ${state.passCount} completed`);
+      lastUnsortedIndex--;
+      await sleep(getDelay());
+    }
+
+    // mark all remaining bars as sorted (covers early-exit + final element)
+    for (let k = 0; k <= lastUnsortedIndex; k++) setBarState(k, 'sorted');
+    updateProgress(100);
+    setStepMessage('Sorting completed');
+    showCelebration();
+
+  } catch (err) {
+    if (err.message !== 'SORT_CANCELLED') throw err;
+    // cancelled via Reset — silently stop
+  } finally {
+    stopTimer();
+    state.isSorting = false;
+    setControlsForSorting(false);
+    el.btnStart.disabled = state.isCancelled ? false : true;
+  }
+}
+
+// Helper: total comparison-steps completed so far, for progress-bar math
+function getStepsCompleted(passIndex, innerIndex, n) {
+  let done = 0;
+  for (let p = 0; p < passIndex; p++) done += (n - 1 - p);
+  done += innerIndex;
+  return done;
+}
+
+/* ---------- 7. EVENT WIRING ---------- */
+
+el.btnGenerate.addEventListener('click', () => {
+  if (state.isSorting) return;
+  generateArray();
+  el.btnStart.disabled = false;
+});
+
+el.btnStart.addEventListener('click', () => {
+  if (state.isSorting) return;
+  hideCelebration();
+  resetStats();
+  bubbleSort();
+});
+
+el.btnPause.addEventListener('click', () => {
+  if (!state.isSorting) return;
+  state.isPaused = true;
+  setControlsForSorting(true);
+  setStepMessage('Paused');
+});
+
+el.btnResume.addEventListener('click', () => {
+  if (!state.isSorting) return;
+  state.isPaused = false;
+  setControlsForSorting(true);
+  setStepMessage('Resumed sorting...');
+});
+
+el.btnReset.addEventListener('click', () => {
+  // Cancel any in-flight sort
+  state.isCancelled = true;
+  state.isPaused = false;
+  state.isSorting = false;
+  stopTimer();
+  hideCelebration();
+  el.customArrayInput.value = '';
+  el.customArrayError.textContent = '';
+  el.customArrayInput.classList.remove('invalid');
+  generateArray();
+  setControlsForSorting(false);
+  el.btnStart.disabled = false;
+});
+
+el.speedSlider.addEventListener('input', (e) => {
+  state.speed = parseInt(e.target.value, 10);
+  const labels = { 1:'Very Slow',2:'Very Slow',3:'Slow',4:'Slow',5:'Medium',6:'Medium',7:'Fast',8:'Fast',9:'Very Fast',10:'Turbo' };
+  el.speedLabel.textContent = labels[state.speed];
+});
+
+el.sizeSlider.addEventListener('input', (e) => {
+  if (state.isSorting) return; // guarded (also disabled), belt & braces
+  state.arraySize = parseInt(e.target.value, 10);
+  el.sizeLabel.textContent = state.arraySize;
+  generateArray();
+});
+
+el.btnUseCustom.addEventListener('click', useCustomArray);
+
+el.customArrayInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') useCustomArray();
+});
+
+el.customArrayInput.addEventListener('input', () => {
+  el.customArrayInput.classList.remove('invalid');
+  el.customArrayError.textContent = '';
+});
+
+el.modeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  el.modeIcon.textContent = isLight ? '☀️' : '🌙';
+  el.modeLabel.textContent = isLight ? 'Light mode' : 'Dark mode';
+  // re-render bar heights since stage size can shift slightly with theme
+  renderBars();
+  reapplySortedHighlighting();
+});
+
+// After a theme swap, keep any bars that were marked sorted looking sorted
+function reapplySortedHighlighting() {
+  if (!state.isSorting && el.progressPct.textContent === '100%') {
+    state.array.forEach((_, i) => setBarState(i, 'sorted'));
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (!state.isSorting) renderBars();
+});
+
+/* ---------- 8. INIT ---------- */
+(function init() {
+  el.speedSlider.value = state.speed;
+  el.sizeSlider.value = state.arraySize;
+  generateArray();
+  setControlsForSorting(false);
+})();
+</script>
+</body>
+</html>
