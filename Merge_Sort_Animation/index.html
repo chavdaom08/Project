@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Merge Sort Visualizer &mdash; Divide, Conquer, Merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Confetti layer, populated by JS on completion -->
+  <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <!-- ============ HEADER ============ -->
+    <header class="hero">
+      <div class="hero__left">
+        <p class="hero__eyebrow">Algorithm Lab &mdash; Sorting Series</p>
+        <h1 class="hero__title">Merge&nbsp;Sort Visualizer</h1>
+        <p class="hero__tagline">Divide &bull; Conquer &bull; Merge &bull; Sort</p>
+      </div>
+      <div class="hero__right">
+        <div class="state-pill" id="statePill">
+          <span class="state-pill__dot" id="stateDot"></span>
+          <span id="stateLabel">IDLE</span>
+        </div>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">
+          <svg id="themeIconMoon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <!-- ============ VISUALIZATION ============ -->
+      <section class="glass card viz-card" aria-label="Array visualization">
+        <div class="card__header">
+          <h2 class="card__title">Array Visualization</h2>
+          <div class="legend" id="legend">
+            <span class="legend__item"><i class="swatch swatch--normal"></i>Unsorted</span>
+            <span class="legend__item"><i class="swatch swatch--subarray"></i>Active range</span>
+            <span class="legend__item"><i class="swatch swatch--comparing"></i>Comparing</span>
+            <span class="legend__item"><i class="swatch swatch--moving"></i>Placing</span>
+            <span class="legend__item"><i class="swatch swatch--sorted"></i>Merged</span>
+          </div>
+        </div>
+        <div class="viz-scroll">
+          <div class="visualizer" id="visualizer"><!-- bars injected by JS --></div>
+        </div>
+      </section>
+
+      <!-- ============ CONTROLS ============ -->
+      <section class="glass card controls-card" aria-label="Controls">
+        <div class="btn-row">
+          <button class="btn btn--ghost" id="generateBtn" type="button">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            New Array
+          </button>
+          <button class="btn btn--primary" id="startBtn" type="button">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Start Sorting
+          </button>
+          <button class="btn btn--warn" id="pauseBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+            Pause
+          </button>
+          <button class="btn btn--good" id="resumeBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Resume
+          </button>
+          <button class="btn btn--ghost" id="resetBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            Reset
+          </button>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-group">
+            <label for="speedSlider">Speed <span class="slider-group__value" id="speedValueLabel">Medium</span></label>
+            <div class="slider-track-labels">
+              <span>Slow</span>
+              <input type="range" id="speedSlider" min="1" max="10" value="5" step="1" />
+              <span>Fast</span>
+            </div>
+          </div>
+          <div class="slider-group">
+            <label for="sizeSlider">Array Size <span class="slider-group__value" id="sizeValueLabel">30</span></label>
+            <div class="slider-track-labels">
+              <span>20</span>
+              <input type="range" id="sizeSlider" min="20" max="50" value="30" step="1" />
+              <span>50</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROGRESS ============ -->
+      <section class="glass card progress-card" aria-label="Sorting progress">
+        <div class="progress-card__top">
+          <h2 class="card__title">Progress</h2>
+          <span class="progress-phase" id="phaseLabel">Phase: Idle</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-card__bottom">
+          <span id="progressPercent">0%</span>
+          <span id="timerDisplay">0 ms</span>
+        </div>
+      </section>
+
+      <!-- ============ STEP LOG + STATS ============ -->
+      <section class="details-grid">
+
+        <div class="glass card terminal-card" aria-label="Current step">
+          <div class="card__header">
+            <h2 class="card__title">Operation Ledger</h2>
+            <span class="terminal-card__badge">LIVE</span>
+          </div>
+          <div class="terminal" id="terminal">
+            <p class="terminal__line terminal__line--active" id="stepMessage">Ready. Click "Start Sorting" to begin.<span class="cursor"></span></p>
+          </div>
+        </div>
+
+        <div class="glass card stats-card" aria-label="Live statistics">
+          <div class="card__header">
+            <h2 class="card__title">Live Statistics</h2>
+          </div>
+          <dl class="stats-grid">
+            <div class="stat"><dt>Recursion Level</dt><dd id="statLevel">0</dd></div>
+            <div class="stat"><dt>Current Subarray</dt><dd id="statSubarray">&mdash;</dd></div>
+            <div class="stat"><dt>Current Comparison</dt><dd id="statComparison">&mdash;</dd></div>
+            <div class="stat"><dt>Comparisons</dt><dd id="statComparisons">0</dd></div>
+            <div class="stat"><dt>Array Accesses</dt><dd id="statAccesses">0</dd></div>
+            <div class="stat"><dt>Merges</dt><dd id="statMerges">0</dd></div>
+          </dl>
+        </div>
+
+      </section>
+
+      <!-- ============ COMPLEXITY ============ -->
+      <section class="glass card complexity-card" aria-label="Merge sort information">
+        <div class="card__header">
+          <h2 class="card__title">Merge Sort Information</h2>
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-item">
+            <span class="complexity-item__label">Time Complexity</span>
+            <span class="complexity-item__value">O(n log n)</span>
+          </div>
+          <div class="complexity-item">
+            <span class="complexity-item__label">Space Complexity</span>
+            <span class="complexity-item__value">O(n)</span>
+          </div>
+          <div class="complexity-item">
+            <span class="complexity-item__label">Best Case</span>
+            <span class="complexity-item__value">O(n log n)</span>
+          </div>
+          <div class="complexity-item">
+            <span class="complexity-item__label">Average Case</span>
+            <span class="complexity-item__value">O(n log n)</span>
+          </div>
+          <div class="complexity-item">
+            <span class="complexity-item__label">Worst Case</span>
+            <span class="complexity-item__value">O(n log n)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ EXPLANATION ============ -->
+      <section class="glass card explain-card" aria-label="How merge sort works">
+        <div class="card__header">
+          <h2 class="card__title">How Merge Sort Works</h2>
+        </div>
+        <p class="explain-lede">
+          Merge Sort is a divide-and-conquer sorting algorithm. It repeatedly divides an array
+          into smaller halves until each part contains only one element, then merges those
+          parts back together in sorted order.
+        </p>
+        <ol class="steps-list">
+          <li><span class="steps-list__num">01</span><span>Divide the array into two halves.</span></li>
+          <li><span class="steps-list__num">02</span><span>Recursively divide both halves.</span></li>
+          <li><span class="steps-list__num">03</span><span>Continue until each subarray contains one element.</span></li>
+          <li><span class="steps-list__num">04</span><span>Compare elements from the left and right subarrays.</span></li>
+          <li><span class="steps-list__num">05</span><span>Place the smaller element into the merged array.</span></li>
+          <li><span class="steps-list__num">06</span><span>Continue until both subarrays are completely merged.</span></li>
+          <li><span class="steps-list__num">07</span><span>Repeat until the entire array is sorted.</span></li>
+        </ol>
+      </section>
+
+    </main>
+
+    <footer class="page-footer">
+      <p>Built with vanilla HTML, CSS &amp; JavaScript &mdash; no frameworks, no dependencies.</p>
+    </footer>
+  </div>
+
+  <!-- ============ COMPLETION TOAST ============ -->
+  <div class="completion-toast" id="completionToast" role="status" aria-live="polite">
+    <div class="completion-toast__icon">&#127881;</div>
+    <div>
+      <p class="completion-toast__title">Sorting Completed Successfully!</p>
+      <p class="completion-toast__sub" id="completionSub">Sorted 30 elements in 0 ms</p>
+    </div>
+    <button class="completion-toast__close" id="completionClose" aria-label="Dismiss">&times;</button>
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>
